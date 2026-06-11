@@ -10,7 +10,7 @@
 
 <p align="center">
 <picture>
-<img src="Resources/show.gif" width="400" alt="TextLens Icon">
+<img src="Resources/show.gif" width="800" alt="TextLens Icon">
 </picture>
 </p>
 
