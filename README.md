@@ -1,3 +1,11 @@
+<p align="center">
+  <picture>
+    <source media="(prefers-color-scheme: light)" srcset="Resources/banner.svg">
+    <source media="(prefers-color-scheme: dark)" srcset="Resources/banner.svg">
+    <img src="Resources/banner.svg" width="800" alt="TextLens">
+  </picture>
+</p>
+
 # TextLens
 
 A macOS menu bar app for OCR text extraction — copy unselectable text from anywhere on your screen.
@@ -62,6 +70,10 @@ You can customize shortcuts in Settings from the menu bar.
 
 TextLens has **zero network access** — enforced via macOS entitlement. All OCR processing happens locally using Apple's Vision framework. Nothing leaves your device.
 
+## Acknowledgments
+
+- [**KeyboardShortcuts**](https://github.com/sindresorhus/KeyboardShortcuts) by Sindre Sorhus — Global keyboard shortcuts (MIT)
+
 ## License
 
-MIT
+MIT — see [LICENSE](LICENSE)
