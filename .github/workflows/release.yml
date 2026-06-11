@@ -8,17 +8,24 @@ on:
 jobs:
   build:
     name: Build and package DMG
-    runs-on: macos-13
-    strategy:
-      matrix:
-        xcode: ["15.2"]
+    runs-on: macos-14
 
     steps:
       - name: Checkout
         uses: actions/checkout@v4
 
-      - name: Select Xcode
-        run: sudo xcode-select -s /Applications/Xcode_${{ matrix.xcode }}.app
+      - name: Select Xcode 16
+        run: sudo xcode-select -s /Applications/Xcode_16.app
+
+      - name: Cache Swift dependencies
+        uses: actions/cache@v4
+        with:
+          path: |
+            .build
+            Package.resolved
+          key: swift-build-${{ runner.os }}-${{ hashFiles('Package.resolved') }}
+          restore-keys: |
+            swift-build-${{ runner.os }}-
 
       - name: Build .app
         run: make SKIP_SIGN=1 app
