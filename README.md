@@ -52,13 +52,20 @@ open build/TextLens.app
 
 ### Download DMG (GitHub Releases)
 
-If you downloaded `TextLens.dmg` from GitHub Releases and macOS says it's damaged:
+If macOS blocks the app (ad-hoc signed, not notarized):
 
-```bash
-xattr -cr /Volumes/TextLens/TextLens.app
-```
+**Option A** — Right-click > Open (once):
+1. Copy `TextLens.app` to `/Applications`
+2. **Right-click** `TextLens.app` > **Open**
+3. Click **Open** in the dialog — Gatekeeper remembers this app
 
-Then copy to Applications and open. (This removes the quarantine flag — the app is not signed with an Apple Developer certificate.)
+**Option B** — System Settings (persistent):
+1. Try opening — you'll see "Apple could not verify..."
+2. Go to **System Settings > Privacy & Security**
+3. Scroll down, click **Open Anyway** next to TextLens
+4. Enter your password, then click **Open**
+
+This only happens because the app isn't signed with an Apple Developer certificate ($99/year). It's safe — TextLens has zero network access. Verify at [GitHub source](https://github.com/dtmkeng/textlens).
 
 ## Usage
 
