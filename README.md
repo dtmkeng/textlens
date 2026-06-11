@@ -8,6 +8,12 @@
 
 # TextLens
 
+<p align="center">
+<picture>
+<img src="Resources/show.gif" width="400" alt="TextLens Icon">
+</picture>
+</p>
+
 A macOS menu bar app for OCR text extraction — copy unselectable text from anywhere on your screen.
 
 Inspired by [Text Lens](https://sindresorhus.com/text-lens) by Sindre Sorhus.
