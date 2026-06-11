@@ -2,9 +2,10 @@ APP_NAME := TextLens
 BUNDLE_ID := dev.dtmkeng.textlens
 BUILD_DIR := .build
 APP_BUNDLE := build/$(APP_NAME).app
+DMG := build/$(APP_NAME).dmg
 CERT_NAME := TextLens Development
 
-.PHONY: all release app run install clean cert
+.PHONY: all release app dmg run install clean cert
 
 all: app
 
@@ -36,17 +37,36 @@ cert:
 release:
 	swift build -c release --product $(APP_NAME)
 
-app: cert release
+# Build .app bundle. In CI (SKIP_SIGN=1), skip codesigning.
+app: release
 	@mkdir -p $(APP_BUNDLE)/Contents/MacOS
 	@mkdir -p $(APP_BUNDLE)/Contents/Resources
 	cp $(BUILD_DIR)/release/$(APP_NAME) $(APP_BUNDLE)/Contents/MacOS/$(APP_NAME)
 	cp Resources/Info.plist $(APP_BUNDLE)/Contents/Info.plist
 	cp Resources/TextLens.entitlements $(APP_BUNDLE)/Contents/entitlements.plist
-	# Sign with persistent identity so macOS remembers Screen Recording permission
-	codesign --force --deep --sign "$(CERT_NAME)" --options runtime \
-		--entitlements Resources/TextLens.entitlements \
-		$(APP_BUNDLE) 2>/dev/null
-	@echo "✅ $(APP_BUNDLE) built and signed"
+ifneq ($(SKIP_SIGN),1)
+	# Check cert exists before signing (skip silently if missing, e.g. CI without exported cert)
+	@if security find-certificate -c "$(CERT_NAME)" &>/dev/null; then \
+		codesign --force --deep --sign "$(CERT_NAME)" --options runtime \
+			--entitlements Resources/TextLens.entitlements \
+			$(APP_BUNDLE) && echo "✅ Signed with '$(CERT_NAME)'"; \
+	else \
+		echo "⚠️  Certificate '$(CERT_NAME)' not found, skipping signing"; \
+	fi
+else
+	@echo "⚠️  SKIP_SIGN=1, skipping signing"
+endif
+	@echo "✅ $(APP_BUNDLE) built"
+
+# Package .app into a compressed .dmg for distribution
+dmg: app
+	@mkdir -p build
+	rm -f $(DMG)
+	hdiutil create -volname "$(APP_NAME)" \
+		-srcfolder $(APP_BUNDLE) \
+		-ov -format UDZO \
+		$(DMG) 2>&1 | tail -1
+	@echo "✅ $(DMG) created"
 
 run: app
 	open $(APP_BUNDLE)

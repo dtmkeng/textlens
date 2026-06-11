@@ -1,6 +1,7 @@
 import AppKit
 import Vision
 import Accelerate
+import CoreImage
 
 final class OCRService {
     enum OCRServiceError: LocalizedError {
@@ -18,19 +19,24 @@ final class OCRService {
     }
 
     func recognizeText(from imageData: Data) async throws -> String {
-        guard let image = NSImage(data: imageData),
-              let cgImage = image.cgImage else {
+        guard let cgImage = decodeImage(from: imageData) else {
             throw OCRServiceError.imageDecodeFailed
         }
 
-        // Upscale 2x for better small-text recognition
-        let scaledCGImage = upscaleImage(cgImage, scale: 2) ?? cgImage
+        // Upscale 5x first so all downstream processing has more pixels to work with
+        let scaledCGImage = upscaleImage(cgImage, scale: 5) ?? cgImage
+
+        // Then grayscale + sharpen on the high-res image
+        let processedCGImage = preprocessForOCR(scaledCGImage)
 
         let request = VNRecognizeTextRequest()
         request.recognitionLevel = .accurate
-        request.usesLanguageCorrection = true
+        // Disable language correction for accurate numeric/symbol preservation
+        request.usesLanguageCorrection = false
         request.revision = VNRecognizeTextRequestRevision3
-        request.recognitionLanguages = ["th", "en"]
+        // Apple Vision auto-detects the actual language from this priority list
+        // Order matters: higher priority languages are preferred when ambiguous
+        request.recognitionLanguages = ["th", "en", "ja", "zh-Hans", "zh-Hant", "ko", "vi"]
         // Common technical terms to improve mixed-language accuracy
         request.customWords = [
             "Vision", "Focus", "TextLens", "OCR", "macOS",
@@ -39,7 +45,7 @@ final class OCRService {
             "Screenshot", "Clipboard", "Shortcut", "Framework"
         ]
 
-        let handler = VNImageRequestHandler(cgImage: scaledCGImage, options: [:])
+        let handler = VNImageRequestHandler(cgImage: processedCGImage, options: [:])
         try handler.perform([request])
 
         guard let observations = request.results, !observations.isEmpty else {
@@ -55,6 +61,35 @@ final class OCRService {
         }
 
         return text
+    }
+
+    /// Decode image data to CGImage via NSImage path (handles TIFF, PNG, etc.)
+    private func decodeImage(from data: Data) -> CGImage? {
+        guard let image = NSImage(data: data) else { return nil }
+        return image.cgImage
+    }
+
+    /// Convert to grayscale + enhance contrast + sharpen for better OCR accuracy.
+    /// Screen text uses sub-pixel anti-aliasing (color fringing) which confuses Vision.
+    /// Grayscale removes color ambiguity; contrast boost + sharpen defines character edges.
+    private func preprocessForOCR(_ image: CGImage) -> CGImage {
+        let ciImage = CIImage(cgImage: image)
+        let context = CIContext(options: [.workingColorSpace: NSNull()])
+
+        // Step 1: Grayscale + contrast boost
+        guard let grayFilter = CIFilter(name: "CIColorControls") else { return image }
+        grayFilter.setValue(ciImage, forKey: kCIInputImageKey)
+        grayFilter.setValue(0.0, forKey: kCIInputSaturationKey)
+        grayFilter.setValue(2.0, forKey: kCIInputContrastKey)
+        guard let contrastImage = grayFilter.outputImage else { return image }
+
+        // Step 2: Sharpen to define character edges
+        guard let sharpenFilter = CIFilter(name: "CISharpenLuminance") else { return image }
+        sharpenFilter.setValue(contrastImage, forKey: kCIInputImageKey)
+        sharpenFilter.setValue(0.4, forKey: kCIInputSharpnessKey)
+        guard let sharpImage = sharpenFilter.outputImage else { return image }
+
+        return context.createCGImage(sharpImage, from: sharpImage.extent) ?? image
     }
 
     /// Upscale CGImage by a given scale factor using vImage (preserves sharpness)

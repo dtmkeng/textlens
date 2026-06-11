@@ -18,6 +18,37 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         overlayWindowController = OverlayWindowController()
 
         registerShortcuts()
+
+        // Check Screen Recording permission at launch (non-blocking, just a heads-up)
+        checkPermissionAtLaunch()
+    }
+
+    /// Show permission guidance on first launch without blocking the app.
+    private func checkPermissionAtLaunch() {
+        // Defer check to avoid showing dialog before menu bar is ready
+        DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) {
+            if !PermissionChecker.hasScreenRecordingPermission() {
+                let alert = NSAlert()
+                alert.messageText = "Screen Recording Permission Required"
+                alert.informativeText = """
+                TextLens needs Screen Recording permission to capture text from your screen.
+
+                To grant access, open System Settings → Privacy & Security →
+                Screen & System Audio Recording, and enable TextLens.
+
+                You may need to restart TextLens after granting permission.
+                """
+                alert.alertStyle = .informational
+                alert.addButton(withTitle: "Open Settings")
+                alert.addButton(withTitle: "OK")
+
+                if alert.runModal() == .alertFirstButtonReturn {
+                    if let url = URL(string: "x-apple.systempreferences:com.apple.preference.security?Privacy_ScreenCapture") {
+                        NSWorkspace.shared.open(url)
+                    }
+                }
+            }
+        }
     }
 
     private func registerShortcuts() {
@@ -31,6 +62,8 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     }
 
     private func startScreenCapture() {
+        guard PermissionChecker.ensurePermission() else { return }
+
         // screencapture handles permission prompt natively
         overlayWindowController.beginCapture { [weak self] imageData in
             guard let self else { return }

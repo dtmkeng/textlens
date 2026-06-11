@@ -6,6 +6,7 @@ final class MenuBarManager: NSObject {
     private let startScreenCapture: () -> Void
     private let startClipboardOCR: () -> Void
     private let quitAction: () -> Void
+    private let updateChecker = UpdateChecker()
 
     init(
         startScreenCapture: @escaping () -> Void,
@@ -66,6 +67,14 @@ final class MenuBarManager: NSObject {
         settingsItem.target = self
         menu.addItem(settingsItem)
 
+        let updateItem = NSMenuItem(
+            title: "Check for Updates…",
+            action: #selector(checkForUpdates),
+            keyEquivalent: ""
+        )
+        updateItem.target = self
+        menu.addItem(updateItem)
+
         menu.addItem(.separator())
 
         let quitItem = NSMenuItem(
@@ -109,6 +118,10 @@ final class MenuBarManager: NSObject {
         popover.contentViewController = controller
         popover.behavior = .transient
         popover.show(relativeTo: statusItem.button!.bounds, of: statusItem.button!, preferredEdge: .maxY)
+    }
+
+    @objc private func checkForUpdates() {
+        updateChecker.checkForUpdates()
     }
 
     @objc private func quit() {
