@@ -82,6 +82,6 @@ MIT — see [LICENSE](LICENSE)
 
 <p align="center">
   <a href="https://ko-fi.com/dtmkeng">
-    <img src="https://ko-fi.com/img/githubbutton_sm.svg" alt="Support me on Ko-Fi" width="180">
+    <img src="https://img.shields.io/badge/Buy%20me%20a%20coffee-FF5E5B?style=for-the-badge&logo=ko-fi&logoColor=white" alt="ko-fi">
   </a>
 </p>
