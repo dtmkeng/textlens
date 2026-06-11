@@ -50,6 +50,16 @@ make app     # Build TextLens.app
 open build/TextLens.app
 ```
 
+### Download DMG (GitHub Releases)
+
+If you downloaded `TextLens.dmg` from GitHub Releases and macOS says it's damaged:
+
+```bash
+xattr -cr /Volumes/TextLens/TextLens.app
+```
+
+Then copy to Applications and open. (This removes the quarantine flag — the app is not signed with an Apple Developer certificate.)
+
 ## Usage
 
 1. Launch TextLens — it appears in the menu bar as 🔍

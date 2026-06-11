@@ -37,7 +37,7 @@ cert:
 release:
 	swift build -c release --product $(APP_NAME)
 
-# Build .app bundle. In CI (SKIP_SIGN=1), skip codesigning.
+# Build .app bundle. In CI (SKIP_SIGN=1), ad-hoc sign instead.
 app: release
 	@mkdir -p $(APP_BUNDLE)/Contents/MacOS
 	@mkdir -p $(APP_BUNDLE)/Contents/Resources
@@ -45,16 +45,20 @@ app: release
 	cp Resources/Info.plist $(APP_BUNDLE)/Contents/Info.plist
 	cp Resources/TextLens.entitlements $(APP_BUNDLE)/Contents/entitlements.plist
 ifneq ($(SKIP_SIGN),1)
-	# Check cert exists before signing (skip silently if missing, e.g. CI without exported cert)
+	# Sign with self-signed cert (for local dev, enables Hardened Runtime)
 	@if security find-certificate -c "$(CERT_NAME)" &>/dev/null; then \
 		codesign --force --deep --sign "$(CERT_NAME)" --options runtime \
 			--entitlements Resources/TextLens.entitlements \
 			$(APP_BUNDLE) && echo "✅ Signed with '$(CERT_NAME)'"; \
 	else \
-		echo "⚠️  Certificate '$(CERT_NAME)' not found, skipping signing"; \
+		echo "⚠️  Certificate '$(CERT_NAME)' not found, ad-hoc signing..."; \
+		codesign --force --deep -s - --entitlements Resources/TextLens.entitlements \
+			$(APP_BUNDLE) && echo "✅ Ad-hoc signed"; \
 	fi
 else
-	@echo "⚠️  SKIP_SIGN=1, skipping signing"
+	# CI: ad-hoc sign so macOS doesn't flag the app as damaged
+	codesign --force --deep -s - --entitlements Resources/TextLens.entitlements \
+		$(APP_BUNDLE) && echo "✅ Ad-hoc signed (CI)"
 endif
 	@echo "✅ $(APP_BUNDLE) built"
 
